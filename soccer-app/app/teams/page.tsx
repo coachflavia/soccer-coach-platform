@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const TEAM_STORAGE_KEY = "soccer-coach-teams";
 
@@ -14,18 +14,40 @@ type Team = {
   season: string;
 };
 
+function subscribeToTeams(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+
+  return () => window.removeEventListener("storage", onStoreChange);
+}
+
+function getStoredTeams() {
+  return window.localStorage.getItem(TEAM_STORAGE_KEY);
+}
+
+function parseTeams(storedTeams: string | null): Team[] {
+  if (!storedTeams) {
+    return [];
+  }
+
+  try {
+    const parsedTeams: unknown = JSON.parse(storedTeams);
+
+    return Array.isArray(parsedTeams) ? (parsedTeams as Team[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function TeamsPage() {
-  const [teams] = useState<Team[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    const storedTeams = window.localStorage.getItem(TEAM_STORAGE_KEY);
-
-    return storedTeams ? JSON.parse(storedTeams) : [];
-  });
+  const storedTeams = useSyncExternalStore(
+    subscribeToTeams,
+    getStoredTeams,
+    () => null,
+  );
+  const teams = parseTeams(storedTeams);
 
   return (
+
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex items-center justify-between">
@@ -76,10 +98,11 @@ export default function TeamsPage() {
         ) : (
           <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {teams.map((team) => (
-              <article
-                key={team.id}
-                className="rounded-2xl border border-slate-800 bg-slate-900 p-6"
-              >
+              <a
+  key={team.id}
+  href={`/teams/${team.id}`}
+  className="block rounded-2xl border border-slate-800 bg-slate-900 p-6 transition hover:border-emerald-500 hover:bg-slate-800"
+>
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
@@ -95,7 +118,7 @@ export default function TeamsPage() {
                   <p>{team.club || "Independent team"}</p>
                   <p>{team.season}</p>
                 </div>
-              </article>
+              </a>
             ))}
           </div>
         )}

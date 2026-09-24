@@ -113,7 +113,7 @@ export default function Home() {
               <h3 className="text-xl font-semibold">Team Snapshot</h3>
 
               <p className="mt-3 text-slate-400">
-                Your team's latest information and performance will appear here.
+                Your team&apos;s latest information and performance will appear here.
               </p>
             </div>
           </div>
