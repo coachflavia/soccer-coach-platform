@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState, useSyncExternalStore } from "react";
+import { parseTeams, TEAM_STORAGE_KEY, Team } from "../../../../lib/team-data";
+import { LocalImage } from "../../../../components/local-image";
 import {
   PLAYER_DATA_EVENT,
   PLAYER_STORAGE_KEY,
@@ -12,10 +14,6 @@ import {
   playerFullName,
   savePlayersData,
 } from "../../../../lib/player-data";
-
-const TEAM_STORAGE_KEY = "soccer-coach-teams";
-
-type Team = { id: string; name: string; ageGroup: string; season: string };
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -59,6 +57,7 @@ function AddPlayerDialog({ teamId, onClose }: { teamId: string; onClose: () => v
       preferredFoot: (String(formData.get("preferredFoot") ?? "") || null) as PlayerProfile["preferredFoot"],
       status: "active", email: null, phone: null, guardianName: null, guardianEmail: null,
       joinedAt: new Date().toISOString(), notes: "",
+      profilePhoto: null,
     };
     savePlayersData({ ...data, players: [...data.players, player] });
     onClose();
@@ -104,7 +103,7 @@ export default function PlayersPage() {
   const [position, setPosition] = useState("All positions");
   const [showAdd, setShowAdd] = useState(false);
   const [teamsRaw, playersRaw] = snapshot.split("\n");
-  const teams: Team[] = useMemo(() => { try { return JSON.parse(teamsRaw || "[]"); } catch { return []; } }, [teamsRaw]);
+  const teams: Team[] = useMemo(() => parseTeams(teamsRaw), [teamsRaw]);
   const team = teams.find((item) => item.id === id);
   const data = useMemo(() => parsePlayersData(playersRaw), [playersRaw]);
   const teamPlayers = data.players.filter((player) => player.teamId === id);
@@ -143,7 +142,7 @@ export default function PlayersPage() {
           {filtered.length ? <div className="divide-y divide-slate-100">{filtered.map((player) => {
             const report = buildPlayerReportData(player, data.evaluations);
             return <Link key={player.id} href={`/teams/${id}/players/${player.id}`} className="grid items-center gap-4 px-5 py-4 transition hover:bg-slate-50 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-              <div className="flex items-center gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-sm font-bold text-emerald-700">{initials(player)}</span><span><strong className="block text-sm">{playerFullName(player)}</strong><span className="text-xs text-slate-400">#{player.jerseyNumber ?? "—"} · {player.playerType}</span></span></div>
+              <div className="flex items-center gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-50 text-sm font-bold text-emerald-700">{player.profilePhoto ? <LocalImage src={player.profilePhoto.dataUrl} alt="" /> : initials(player)}</span><span><strong className="block text-sm">{playerFullName(player)}</strong><span className="text-xs text-slate-400">#{player.jerseyNumber ?? "—"} · {player.playerType}</span></span></div>
               <span><span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:hidden">Position</span><span className="text-sm font-medium text-slate-700">{player.primaryPosition}</span></span>
               <span><span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:hidden">Status</span><span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold capitalize text-emerald-700"><i className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{player.status}</span></span>
               <span><span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:hidden">Technical average</span><strong className="text-sm">{report.currentEvaluation?.technical.average.toFixed(1) ?? "Not rated"}</strong></span><span className="text-xl text-slate-300">›</span>

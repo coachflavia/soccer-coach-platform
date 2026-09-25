@@ -1,3 +1,5 @@
+import type { LocalImageAsset } from "./media";
+
 export const PLAYER_STORAGE_KEY = "soccer-coach-players";
 export const PLAYER_DATA_EVENT = "soccer-coach-players-updated";
 
@@ -24,6 +26,7 @@ export type PlayerProfile = {
   guardianEmail: string | null;
   joinedAt: string;
   notes: string;
+  profilePhoto: LocalImageAsset | null;
 };
 
 export const fieldPlayerTechnicalCriteria = [
@@ -132,10 +135,11 @@ export function calculateTechnicalAverage(ratings: TechnicalRatings) {
     completedRatings.length;
 }
 
-function migratePlayer(player: Omit<PlayerProfile, "playerType"> & { playerType?: PlayerType }) {
+function migratePlayer(player: Omit<PlayerProfile, "playerType" | "profilePhoto"> & { playerType?: PlayerType; profilePhoto?: LocalImageAsset | null }) {
   return {
     ...player,
     playerType: player.playerType ?? (player.primaryPosition === "Goalkeeper" ? "Goalkeeper" : "Field Player"),
+    profilePhoto: player.profilePhoto ?? null,
   } satisfies PlayerProfile;
 }
 

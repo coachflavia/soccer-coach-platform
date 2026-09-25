@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
+import { ImageUpload } from "../../../../../components/image-upload";
+import { LocalImage } from "../../../../../components/local-image";
 import {
   PLAYER_DATA_EVENT,
   PLAYER_STORAGE_KEY,
@@ -117,10 +119,26 @@ function EvaluationDialog({ player, onClose }: { player: PlayerProfile; onClose:
   );
 }
 
+function PhotoDialog({ player, onClose }: { player: PlayerProfile; onClose: () => void }) {
+  const [photo, setPhoto] = useState(player.profilePhoto);
+  const [error, setError] = useState("");
+  function save() {
+    const data = parsePlayersData(window.localStorage.getItem(PLAYER_STORAGE_KEY));
+    try {
+      savePlayersData({ ...data, players: data.players.map((item) => item.id === player.id ? { ...item, profilePhoto: photo } : item) });
+      onClose();
+    } catch {
+      setError("This browser does not have enough local storage for that photo. Try a smaller image or remove it.");
+    }
+  }
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4" role="dialog" aria-modal="true" aria-labelledby="photo-title"><div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 text-white"><div className="flex justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-emerald-400">Player profile</p><h2 id="photo-title" className="mt-1 text-xl font-bold">Profile photo</h2></div><button onClick={onClose} aria-label="Close" className="text-slate-400">✕</button></div><div className="mt-6"><ImageUpload value={photo} onChange={setPhoto} label="Player photo" initials={`${player.firstName[0] ?? ""}${player.lastName[0] ?? ""}`} shape="circle" /></div>{error && <p className="mt-4 text-sm text-rose-400">{error}</p>}<div className="mt-7 flex justify-end gap-3"><button onClick={onClose} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold">Cancel</button><button onClick={save} className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-bold text-slate-950">Save photo</button></div></div></div>;
+}
+
 export default function PlayerPage() {
   const { id, playerId } = useParams<{ id: string; playerId: string }>();
   const raw = useSyncExternalStore(subscribe, getSnapshot, () => "");
   const [showEvaluation, setShowEvaluation] = useState(false);
+  const [showPhoto, setShowPhoto] = useState(false);
   const data = parsePlayersData(raw);
   const player = data.players.find((item) => item.id === playerId);
 
@@ -142,11 +160,12 @@ export default function PlayerPage() {
   return (
     <main className="min-h-screen bg-[#f5f7f8] text-slate-950">
       {showEvaluation && <EvaluationDialog player={player} onClose={() => setShowEvaluation(false)} />}
+      {showPhoto && <PhotoDialog player={player} onClose={() => setShowPhoto(false)} />}
       <header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4"><Link href="/teams" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">◆</span><strong className="text-sm">CoachBoard</strong></Link><span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">CA</span></div></header>
       <div className="mx-auto max-w-7xl px-6 py-8">
         <Link href={`/teams/${id}/players`} className="text-sm font-bold text-slate-500 hover:text-emerald-700">← Back to roster</Link>
         <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <div className="flex flex-col justify-between gap-6 bg-gradient-to-r from-slate-950 to-slate-800 p-7 text-white sm:flex-row sm:items-center"><div className="flex items-center gap-5"><span className="flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-500 text-2xl font-bold text-slate-950">{player.firstName[0]}{player.lastName[0]}</span><div><div className="flex items-center gap-3"><h1 className="text-3xl font-bold">{playerFullName(player)}</h1><span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-xs font-bold capitalize text-emerald-300">{player.status}</span></div><p className="mt-2 text-sm text-slate-300">#{player.jerseyNumber ?? "—"} · {player.playerType} · {player.primaryPosition}</p></div></div><button onClick={() => setShowEvaluation(true)} className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400">+ New evaluation</button></div>
+          <div className="flex flex-col justify-between gap-6 bg-gradient-to-r from-slate-950 to-slate-800 p-7 text-white sm:flex-row sm:items-center"><div className="flex items-center gap-5"><button onClick={() => setShowPhoto(true)} className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-emerald-500 text-2xl font-bold text-slate-950" aria-label="Change player photo">{player.profilePhoto ? <LocalImage src={player.profilePhoto.dataUrl} alt={`${playerFullName(player)} profile`} /> : <>{player.firstName[0]}{player.lastName[0]}</>}<span className="absolute inset-x-0 bottom-0 bg-slate-950/75 py-1 text-[10px] font-semibold text-white opacity-0 transition group-hover:opacity-100">Edit photo</span></button><div><div className="flex items-center gap-3"><h1 className="text-3xl font-bold">{playerFullName(player)}</h1><span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-xs font-bold capitalize text-emerald-300">{player.status}</span></div><p className="mt-2 text-sm text-slate-300">#{player.jerseyNumber ?? "—"} · {player.playerType} · {player.primaryPosition}</p><button onClick={() => setShowPhoto(true)} className="mt-2 text-xs font-semibold text-emerald-300 hover:text-emerald-200">{player.profilePhoto ? "Change profile photo" : "Add profile photo"}</button></div></div><button onClick={() => setShowEvaluation(true)} className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-400">+ New evaluation</button></div>
           <dl className="grid gap-px bg-slate-100 sm:grid-cols-4">{details.map(([label, value]) => <div key={label} className="bg-white px-6 py-5"><dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</dt><dd className="mt-1.5 text-sm font-bold capitalize text-slate-800">{value}</dd></div>)}</dl>
         </section>
 
