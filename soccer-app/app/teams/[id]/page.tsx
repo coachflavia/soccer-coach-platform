@@ -21,6 +21,7 @@ const dashboardSections = [
     title: "Players",
     description: "Build your roster and keep player details organized.",
     icon: "♟",
+    path: "players",
   },
   {
     title: "Training",
@@ -153,8 +154,9 @@ export default function TeamDashboardPage() {
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {dashboardSections.map((section) => (
-              <div
+              <Link
                 key={section.title}
+                href={section.path ? `/teams/${id}/${section.path}` : "#"}
                 className="rounded-2xl border border-slate-800 bg-slate-900 p-6"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-xl text-emerald-400">
@@ -164,10 +166,10 @@ export default function TeamDashboardPage() {
                 <p className="mt-2 text-sm leading-6 text-slate-400">
                   {section.description}
                 </p>
-                <span className="mt-5 inline-flex rounded-full border border-slate-700 px-3 py-1 text-xs font-medium text-slate-400">
-                  Coming soon
+                <span className={`mt-5 inline-flex rounded-full px-3 py-1 text-xs font-medium ${section.path ? "bg-emerald-500/10 text-emerald-400" : "border border-slate-700 text-slate-400"}`}>
+                  {section.path ? "Open roster →" : "Coming soon"}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

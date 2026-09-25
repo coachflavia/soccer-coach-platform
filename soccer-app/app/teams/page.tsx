@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
 const TEAM_STORAGE_KEY = "soccer-coach-teams";
@@ -65,12 +66,12 @@ export default function TeamsPage() {
             </p>
           </div>
 
-          <a
+          <Link
   href="/teams/new"
   className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950"
 >
   + Create Team
-</a>
+</Link>
             
           
         </div>
@@ -87,18 +88,18 @@ export default function TeamsPage() {
                 sessions, and tracking games.
               </p>
 
-              <a
+              <Link
                 href="/teams/new"
                 className="mt-6 inline-block rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-slate-950"
               >
                 Create Your First Team
-              </a>
+              </Link>
             </div>
           </div>
         ) : (
           <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {teams.map((team) => (
-              <a
+              <Link
   key={team.id}
   href={`/teams/${team.id}`}
   className="block rounded-2xl border border-slate-800 bg-slate-900 p-6 transition hover:border-emerald-500 hover:bg-slate-800"
@@ -118,7 +119,7 @@ export default function TeamsPage() {
                   <p>{team.club || "Independent team"}</p>
                   <p>{team.season}</p>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         )}
