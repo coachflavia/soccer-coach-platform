@@ -12,6 +12,7 @@ export type TrainingReport = {
   whatWentWell: string; whatCouldBeBetter: string; nextSteps: string; coachComments: string;
   followUpNeeded: boolean; followUpNotes: string; completedAt: string;
 };
+/** Versioned envelope kept on the drill so future diagram migrations do not affect sessions. */
 export type DrillDiagram = { version: number; data: unknown };
 export type TrainingDrill = {
   id: string; sourceDrillId: string | null; name: string; duration: number; playerCount: number;
@@ -49,4 +50,9 @@ export function saveTrainingSessions(sessions: TrainingSession[]) {
 export function duplicateSession(source: TrainingSession): TrainingSession {
   const now = new Date().toISOString();
   return { ...source, id: createId(), mainObjective: `${source.mainObjective || "Training session"} (Copy)`, status: "Planned", report: null, cancellationReason: null, cancellationNotes: "", createdAt: now, updatedAt: now, drills: source.drills.map((drill) => ({ ...drill, id: createId(), diagram: drill.diagram ? structuredClone(drill.diagram) : null })) };
+}
+
+/** A storage-safe deep copy. Diagrams contain JSON data only. */
+export function duplicateDrill(source: TrainingDrill): TrainingDrill {
+  return { ...source, id: createId(), name: `${source.name || "Drill"} (Copy)`, diagram: source.diagram ? structuredClone(source.diagram) : null };
 }
