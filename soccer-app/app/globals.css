@@ -24,3 +24,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer components {
+  .training-panel { @apply rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:p-6; }
+  .training-form-grid { @apply grid gap-4 sm:grid-cols-2; }
+  .training-label { @apply mb-2 block text-sm font-semibold text-slate-300; }
+  .training-input { @apply min-h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-base text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-500; }
+  .training-primary { @apply min-h-11 rounded-xl bg-emerald-500 px-4 py-2.5 text-center font-bold text-slate-950 transition hover:bg-emerald-400; }
+  .training-secondary { @apply min-h-11 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-center text-sm font-semibold text-white hover:border-slate-500; }
+  .training-danger { @apply min-h-11 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-center text-sm font-semibold text-rose-300 hover:bg-rose-500/20; }
+  .training-small { @apply min-h-10 rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-300 disabled:cursor-not-allowed disabled:opacity-35; }
+}

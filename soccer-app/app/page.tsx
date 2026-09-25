@@ -29,9 +29,9 @@ export default function Home() {
               Players
             </div>
 
-            <div className="rounded-xl px-4 py-3 text-slate-300">
+            <Link href="/training" className="block rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800">
               Training
-            </div>
+            </Link>
 
             <div className="rounded-xl px-4 py-3 text-slate-300">
               Calendar
@@ -75,9 +75,9 @@ export default function Home() {
               </p>
             </div>
 
-            <button className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950">
+            <Link href="/training/new" className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950">
               + New Training Session
-            </button>
+            </Link>
           </div>
 
           <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
