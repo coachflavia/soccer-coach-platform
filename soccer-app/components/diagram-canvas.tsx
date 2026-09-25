@@ -15,7 +15,7 @@ export function DiagramCanvas({ diagram, selectedId, interactive, onPointerDown,
   const horizontal = diagram.orientation === "horizontal";
   return <svg viewBox={horizontal ? "0 0 1000 650" : "0 0 650 1000"} role="img" aria-label="Soccer drill diagram"
     className={`block h-auto w-full rounded-xl bg-emerald-800 ${interactive ? "touch-none select-none" : ""}`}
-    onPointerDown={e=>onPointerDown?.(e)} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+    onPointerDown={e=>onPointerDown?.(e)} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onLostPointerCapture={onPointerUp}>
     <defs><marker id={markerId} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/></marker><pattern id={`${markerId}-grid`} width="50" height="50" patternUnits="userSpaceOnUse"><path d="M50 0H0V50" fill="none" stroke="#fff" strokeOpacity=".14" strokeWidth="2"/></pattern></defs>
     <Field template={diagram.field} horizontal={horizontal} gridId={`${markerId}-grid`}/>
     {diagram.lines.map(line=><Line key={line.id} line={line} width={horizontal?1000:650} height={horizontal?650:1000} markerId={markerId} selected={selectedId===line.id} onDown={e=>{e.stopPropagation();onPointerDown?.(e,line.id)}}/>)}
