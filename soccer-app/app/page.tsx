@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -14,12 +16,12 @@ export default function Home() {
               Dashboard
             </div>
 
-            <a
+            <Link
   href="/teams"
   className="block rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800"
 >
   My Teams
-</a>
+</Link>
               
             
 
