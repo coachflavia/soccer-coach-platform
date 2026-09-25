@@ -3,18 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useSyncExternalStore } from "react";
-
-const TEAM_STORAGE_KEY = "soccer-coach-teams";
-
-type Team = {
-  id: string;
-  name: string;
-  ageGroup: string;
-  gender: string;
-  teamType: string;
-  club: string;
-  season: string;
-};
+import { parseTeams, TEAM_DATA_EVENT, TEAM_STORAGE_KEY } from "../../../lib/team-data";
+import { LocalImage } from "../../../components/local-image";
 
 const dashboardSections = [
   {
@@ -42,26 +32,13 @@ const dashboardSections = [
 
 function subscribeToTeams(onStoreChange: () => void) {
   window.addEventListener("storage", onStoreChange);
+  window.addEventListener(TEAM_DATA_EVENT, onStoreChange);
 
-  return () => window.removeEventListener("storage", onStoreChange);
+  return () => { window.removeEventListener("storage", onStoreChange); window.removeEventListener(TEAM_DATA_EVENT, onStoreChange); };
 }
 
 function getStoredTeams() {
   return window.localStorage.getItem(TEAM_STORAGE_KEY);
-}
-
-function parseTeams(storedTeams: string | null): Team[] {
-  if (!storedTeams) {
-    return [];
-  }
-
-  try {
-    const parsedTeams: unknown = JSON.parse(storedTeams);
-
-    return Array.isArray(parsedTeams) ? (parsedTeams as Team[]) : [];
-  } catch {
-    return [];
-  }
 }
 
 export default function TeamDashboardPage() {
@@ -119,15 +96,10 @@ export default function TeamDashboardPage() {
 
         <section className="mt-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
           <div className="border-b border-slate-800 bg-gradient-to-br from-slate-900 to-emerald-950/40 px-8 py-10 sm:px-10">
-            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
-              Team Dashboard
-            </p>
-            <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
-              {team.name}
-            </h1>
-            <p className="mt-3 text-slate-400">
-              Everything you need to organize your team this season.
-            </p>
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-5"><div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 text-2xl font-bold text-emerald-300">{team.branding.logo ? <LocalImage src={team.branding.logo.dataUrl} alt={`${team.name} logo`} /> : team.name.slice(0, 2).toUpperCase()}</div><div><p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">Team Dashboard</p><h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">{team.name}</h1><p className="mt-3 text-slate-400">Everything you need to organize your team this season.</p></div></div>
+              <Link href={`/teams/${id}/edit`} className="self-start rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-emerald-500 hover:text-white">Edit team</Link>
+            </div>
           </div>
 
           <dl className="grid gap-px bg-slate-800 sm:grid-cols-2 lg:grid-cols-5">

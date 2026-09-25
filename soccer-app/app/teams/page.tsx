@@ -2,41 +2,18 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-
-const TEAM_STORAGE_KEY = "soccer-coach-teams";
-
-type Team = {
-  id: string;
-  name: string;
-  ageGroup: string;
-  gender: string;
-  teamType: string;
-  club: string;
-  season: string;
-};
+import { parseTeams, TEAM_DATA_EVENT, TEAM_STORAGE_KEY } from "../../lib/team-data";
+import { LocalImage } from "../../components/local-image";
 
 function subscribeToTeams(onStoreChange: () => void) {
   window.addEventListener("storage", onStoreChange);
+  window.addEventListener(TEAM_DATA_EVENT, onStoreChange);
 
-  return () => window.removeEventListener("storage", onStoreChange);
+  return () => { window.removeEventListener("storage", onStoreChange); window.removeEventListener(TEAM_DATA_EVENT, onStoreChange); };
 }
 
 function getStoredTeams() {
   return window.localStorage.getItem(TEAM_STORAGE_KEY);
-}
-
-function parseTeams(storedTeams: string | null): Team[] {
-  if (!storedTeams) {
-    return [];
-  }
-
-  try {
-    const parsedTeams: unknown = JSON.parse(storedTeams);
-
-    return Array.isArray(parsedTeams) ? (parsedTeams as Team[]) : [];
-  } catch {
-    return [];
-  }
 }
 
 export default function TeamsPage() {
@@ -105,12 +82,15 @@ export default function TeamsPage() {
   className="block rounded-2xl border border-slate-800 bg-slate-900 p-6 transition hover:border-emerald-500 hover:bg-slate-800"
 >
                 <div className="flex items-start justify-between gap-4">
-                  <div>
+                  <div className="flex items-center gap-4">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-800 text-sm font-bold text-emerald-300">
+                      {team.branding.logo ? <LocalImage src={team.branding.logo.dataUrl} alt="" /> : team.name.slice(0, 2).toUpperCase()}
+                    </span><div>
                     <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
                       {team.ageGroup} · {team.gender}
                     </p>
                     <h2 className="mt-2 text-xl font-semibold">{team.name}</h2>
-                  </div>
+                  </div></div>
                   <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
                     {team.teamType}
                   </span>
