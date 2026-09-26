@@ -18,6 +18,8 @@ export type TrainingDrill = {
   id: string; sourceDrillId: string | null; name: string; duration: number; playerCount: number;
   area: string; objectives: string; description: string; coachingPoints: string;
   progressions: string; notes: string; diagram: DrillDiagram | null;
+  /** Optional library metadata. Missing on historical session drills by design. */
+  category?: string; sessionType?: (typeof sessionTypes)[number]; ageGroups?: string[]; tags?: string[];
 };
 export type TrainingSession = {
   id: string; organizationId: string | null; creatorId: string | null; teamId: string;
@@ -49,10 +51,10 @@ export function saveTrainingSessions(sessions: TrainingSession[]) {
 }
 export function duplicateSession(source: TrainingSession): TrainingSession {
   const now = new Date().toISOString();
-  return { ...source, id: createId(), mainObjective: `${source.mainObjective || "Training session"} (Copy)`, status: "Planned", report: null, cancellationReason: null, cancellationNotes: "", createdAt: now, updatedAt: now, drills: source.drills.map((drill) => ({ ...drill, id: createId(), diagram: drill.diagram ? structuredClone(drill.diagram) : null })) };
+  return { ...source, id: createId(), mainObjective: `${source.mainObjective || "Training session"} (Copy)`, status: "Planned", report: null, cancellationReason: null, cancellationNotes: "", createdAt: now, updatedAt: now, drills: source.drills.map((drill) => ({ ...structuredClone(drill), id: createId() })) };
 }
 
 /** A storage-safe deep copy. Diagrams contain JSON data only. */
 export function duplicateDrill(source: TrainingDrill): TrainingDrill {
-  return { ...source, id: createId(), name: `${source.name || "Drill"} (Copy)`, diagram: source.diagram ? structuredClone(source.diagram) : null };
+  return { ...structuredClone(source), id: createId(), name: `${source.name || "Drill"} (Copy)` };
 }
