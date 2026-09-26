@@ -21,6 +21,7 @@ export type TrainingDrill = {
   /** Optional library metadata. Missing on historical session drills by design. */
   category?: string; sessionType?: (typeof sessionTypes)[number]; ageGroups?: string[]; tags?: string[];
   libraryArea?: string; teamIds?: string[]; specialization?: string; miniKickersTheme?: unknown;
+  developmentFocus?: string[]; soccerSkillFocus?: string[]; physicalMotorFocus?: string[]; socialCognitiveFocus?: string[];
 };
 export type TrainingSession = {
   id: string; organizationId: string | null; creatorId: string | null; teamId: string;
