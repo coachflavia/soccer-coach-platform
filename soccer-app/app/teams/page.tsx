@@ -28,7 +28,7 @@ export default function TeamsPage() {
 
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-7xl px-6 py-10">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
               My Teams
@@ -45,7 +45,7 @@ export default function TeamsPage() {
 
           <Link
   href="/teams/new"
-  className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950"
+  className="self-start rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950"
 >
   + Create Team
 </Link>
