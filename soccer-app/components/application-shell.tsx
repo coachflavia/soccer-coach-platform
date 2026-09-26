@@ -9,6 +9,7 @@ const navigation = [
   { label: "Teams", href: "/teams", active: (path: string) => path.startsWith("/teams") },
   { label: "Training", href: "/training", active: (path: string) => path.startsWith("/training") && !path.startsWith("/training/drills") },
   { label: "Drills", href: "/training/drills", active: (path: string) => path.startsWith("/training/drills") },
+  { label: "Games", href: "/games", active: (path: string) => path.startsWith("/games") },
 ];
 
 export function ApplicationShell({ children }: { children: ReactNode }) {

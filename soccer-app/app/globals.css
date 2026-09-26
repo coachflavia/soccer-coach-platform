@@ -34,4 +34,6 @@ body {
   .training-secondary { @apply min-h-11 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-center text-sm font-semibold text-white hover:border-slate-500; }
   .training-danger { @apply min-h-11 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-center text-sm font-semibold text-rose-300 hover:bg-rose-500/20; }
   .training-small { @apply min-h-10 rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-slate-300 disabled:cursor-not-allowed disabled:opacity-35; }
+  .games-page { @apply mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10; }
+  .games-textarea { @apply min-h-32 w-full resize-y rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-base text-white outline-none focus:border-emerald-500; }
 }
