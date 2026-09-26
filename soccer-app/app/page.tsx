@@ -1,66 +1,11 @@
 import Link from "next/link";
+import { ApplicationShell } from "../components/application-shell";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <div className="flex min-h-screen">
-        <aside className="w-64 border-r border-slate-800 bg-slate-900 p-6">
-          <h1 className="text-2xl font-bold">Coach Hub</h1>
-
-          <p className="mt-1 text-sm text-slate-400">
-            Soccer Coaching Platform
-          </p>
-
-          <nav className="mt-10 space-y-2">
-            <div className="rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-slate-950">
-              Dashboard
-            </div>
-
-            <Link
-  href="/teams"
-  className="block rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800"
->
-  My Teams
-</Link>
-              
-            
-
-            <div className="rounded-xl px-4 py-3 text-slate-300">
-              Players
-            </div>
-
-            <Link href="/training" className="block rounded-xl px-4 py-3 text-slate-300 hover:bg-slate-800">
-              Training
-            </Link>
-
-            <div className="rounded-xl px-4 py-3 text-slate-300">
-              Calendar
-            </div>
-
-            <div className="rounded-xl px-4 py-3 text-slate-300">
-              Games
-            </div>
-
-            <div className="rounded-xl px-4 py-3 text-slate-300">
-              Reports
-            </div>
-
-            <div className="rounded-xl px-4 py-3 text-slate-300">
-              Development
-            </div>
-
-            <div className="rounded-xl px-4 py-3 text-slate-300">
-              Set Pieces
-            </div>
-
-            <div className="rounded-xl px-4 py-3 text-slate-300">
-              Attendance
-            </div>
-          </nav>
-        </aside>
-
-        <section className="flex-1 p-8">
-          <div className="flex items-center justify-between">
+    <ApplicationShell>
+        <main className="mx-auto max-w-7xl px-6 py-10">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">
                 Dashboard
@@ -75,7 +20,7 @@ export default function Home() {
               </p>
             </div>
 
-            <Link href="/training/new" className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950">
+            <Link href="/training/new" className="self-start rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950">
               + New Training Session
             </Link>
           </div>
@@ -119,8 +64,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-        </section>
-      </div>
-    </main>
+        </main>
+    </ApplicationShell>
   );
 }
