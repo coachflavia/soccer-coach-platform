@@ -1,19 +1,551 @@
 "use client";
 /* eslint-disable react-hooks/set-state-in-effect */
-import Link from "next/link";import {useParams} from "next/navigation";import {useEffect,useMemo,useState} from "react";import {GamesHeader,useGamesData} from "./games-ui";import {deriveTeamStats,GamePlan,LIVE_MATCH_STORAGE_KEY,LiveMatch,newId,playerTimes,POST_MATCH_STORAGE_KEY,PostMatchReport,safeCollection,saveCollection,TeamMatchStats} from "../lib/games-data";import {playerFullName} from "../lib/player-data";
-const tactical:[keyof GamePlan,string][]=[["relatedToMatch","Related to Match"],["relatedToOpponent","Related to Opponent"],["offensiveOrganization","Offensive Organization"],["defensiveOrganization","Defensive Organization"],["offensiveTransition","Offensive Transition"],["defensiveTransition","Defensive Transition"],["setPieces","Set Pieces"],["matchFlow","Related to Match Flow"],["emotionalAspect","Emotional Aspect"],["relatedToReferee","Related to Referee"],["teamComparison","Both Teams / Comparison"],["lastWords","Last Words / Pre-Match Message"]];
-const at=()=>new Date().toISOString();
-export default function PostMatchWorkspace(){const {fixtureId}=useParams<{fixtureId:string}>(),d=useGamesData(),fixture=d.fixtures.find(f=>f.id===fixtureId),roster=d.rosters.find(r=>r.fixtureId===fixtureId),plan=d.plans.find(p=>p.fixtureId===fixtureId),live=useMemo(()=>typeof window==="undefined"?undefined:safeCollection<LiveMatch>(localStorage.getItem(LIVE_MATCH_STORAGE_KEY)).find(m=>m.fixtureId===fixtureId),[fixtureId]);const [report,setReport]=useState<PostMatchReport|null>(null),[saved,setSaved]=useState(false);
-useEffect(()=>{if(!fixture||!roster)return;const old=safeCollection<PostMatchReport>(localStorage.getItem(POST_MATCH_STORAGE_KEY)).find(r=>r.fixtureId===fixtureId);if(old){setReport(old);return}const stamp=at(),stats=live?deriveTeamStats(live.events):emptyStats();setReport({schemaVersion:1,id:newId("post-match"),fixtureId,rosterId:roster.id,gamePlanId:plan?.id||null,liveMatchId:live?.id||null,status:"DRAFT",teamStats:stats,playerCorrections:roster.playerIds.map(playerId=>({playerId,minutesPlayed:null,positions:live?.players.find(p=>p.playerId===playerId)?.positionHistory||[],goalsAgainst:null})),tacticalReviews:tactical.filter(([k])=>typeof plan?.[k]==="string"&&plan[k]).map(([key])=>({key,assessment:"",notes:""})),coachSummary:"",wentWell:"",couldBeBetter:"",keyTakeaways:"",needsTrainingFollowUp:false,trainingFollowUpNotes:"",generalComments:"",createdAt:stamp,updatedAt:stamp,completedAt:null})},[fixtureId,fixture,roster,plan,live]);
-if(!fixture)return <Missing text="Fixture not found."/>;if(!roster)return <Missing text="Create a roster before completing the Post-Match Review."/>;if(!report)return <main className="games-page">Loading report…</main>;
-const team=d.teams.find(t=>t.id===fixture.teamId)?.name||"Our team",name=(id:string)=>{const p=d.players.find(x=>x.id===id);return p?playerFullName(p):roster.playerSnapshots.find(x=>x.playerId===id)?.name||"Unknown"},goals=(side:"US"|"OPPONENT")=>report.teamStats[side].goals,result=goals("US")===goals("OPPONENT")?"DRAW":goals("US")>goals("OPPONENT")?"WIN":"LOSS";
-function save(status:PostMatchReport["status"]){if(!report)return;const next:PostMatchReport={...report,status,updatedAt:at(),completedAt:status==="COMPLETED"?(report.completedAt||at()):report.completedAt},all=safeCollection<PostMatchReport>(localStorage.getItem(POST_MATCH_STORAGE_KEY));saveCollection(POST_MATCH_STORAGE_KEY,all.some(r=>r.fixtureId===fixtureId)?all.map(r=>r.fixtureId===fixtureId?next:r):[...all,next]);setReport(next);setSaved(true);setTimeout(()=>setSaved(false),1800)}
-const update=(key:keyof PostMatchReport,value:unknown)=>setReport(current=>current?{...current,[key]:value}:current);
-return <main className="games-page"><GamesHeader eyebrow="Post-match review" title={`${team} ${goals("US")} — ${goals("OPPONENT")} ${fixture.opponentName}`} action={<span className={`rounded-full px-3 py-2 text-xs font-bold ${report.status==="COMPLETED"?"bg-emerald-400/15 text-emerald-300":"bg-amber-400/15 text-amber-300"}`}>{report.status}</span>}/><section className="mt-6 training-panel"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Info label="Result" value={result}/><Info label="Competition" value={fixture.competition||"—"}/><Info label="Date / venue" value={`${fixture.date} · ${fixture.venue||"TBD"}`}/><Info label="Actual duration" value={live?`${Math.ceil(live.elapsedSeconds/60)} min`:"Live Match not used"}/><Info label="Formation" value={plan?.formation||"Not recorded"}/><Info label="Captain" value={plan?.captainPlayerId?name(plan.captainPlayerId):"Not selected"}/></div>{!live&&<p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-200">Live Match was not used. Enter minutes, positions, score, and statistics manually below.</p>}</section><TeamStats report={report} setReport={setReport}/><section className="mt-6 training-panel"><h2 className="text-xl font-bold">Player match record</h2><p className="mt-1 text-sm text-slate-400">Only players on this match roster are shown. Live facts populate automatically; corrections remain editable.</p><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[850px] text-sm"><thead className="text-left text-xs uppercase text-slate-400"><tr><th>Player</th><th>Started</th><th>Minutes</th><th>Positions</th><th>G</th><th>A</th><th>YC</th><th>RC</th><th>GA</th></tr></thead><tbody>{roster.playerIds.map(id=>{const lp=live?.players.find(p=>p.playerId===id),correction=report.playerCorrections.find(p=>p.playerId===id)!,events=live?.events||[],count=(type:string,field="playerId")=>events.filter(e=>e.type===type&&e[field as "playerId"]===id).length,minutes=correction.minutesPlayed??(lp?Math.round(playerTimes(lp,live!).played/60):0);function correct(patch:Partial<typeof correction>){update("playerCorrections",report!.playerCorrections.map(p=>p.playerId===id?{...p,...patch}:p))}return <tr className="border-t border-slate-800" key={id}><td className="py-3 font-bold">{name(id)}</td><td>{lp?.started||plan?.lineup.some(s=>s.playerId===id)?"Yes":"No"}</td><td><input aria-label={`${name(id)} minutes`} className="w-20 rounded-lg bg-slate-950 p-2" type="number" min="0" value={minutes} onChange={e=>correct({minutesPlayed:Number(e.target.value)})}/></td><td><input aria-label={`${name(id)} positions`} className="w-40 rounded-lg bg-slate-950 p-2" value={correction.positions.join(", ")} onChange={e=>correct({positions:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)})}/></td><td>{count("GOAL")}</td><td>{count("GOAL","assistPlayerId")}</td><td>{count("YELLOW_CARD")}</td><td>{count("RED_CARD")}</td><td><input aria-label={`${name(id)} goals against`} className="w-16 rounded-lg bg-slate-950 p-2" type="number" min="0" value={correction.goalsAgainst??""} onChange={e=>correct({goalsAgainst:e.target.value===""?null:Number(e.target.value)})}/></td></tr>})}</tbody></table></div></section>
-{plan&&<section className="mt-6"><h2 className="text-2xl font-bold">Tactical review</h2><p className="mt-1 text-slate-400">The original Game Plan remains unchanged.</p><div className="mt-4 grid gap-4 lg:grid-cols-2">{tactical.filter(([key])=>plan[key]).map(([key,label])=>{const review=report.tacticalReviews.find(r=>r.key===key)||{key,assessment:"" as const,notes:""};const change=(patch:Partial<typeof review>)=>update("tacticalReviews",[...report.tacticalReviews.filter(r=>r.key!==key),{...review,...patch}]);return <article className="training-panel" key={key}><p className="text-xs font-bold uppercase text-emerald-400">{label}</p><div className="my-3 rounded-xl bg-slate-950 p-3 text-sm whitespace-pre-wrap"><span className="text-xs text-slate-500">PRE-MATCH PLAN</span><p>{String(plan[key])}</p></div><select className="training-input" value={review.assessment} onChange={e=>change({assessment:e.target.value as typeof review.assessment})}><option value="">Assessment…</option><option value="ACHIEVED">Achieved</option><option value="PARTIALLY_ACHIEVED">Partially achieved</option><option value="NOT_ACHIEVED">Not achieved</option></select><textarea className="games-textarea mt-3" placeholder="Post-match notes — what actually happened?" value={review.notes} onChange={e=>change({notes:e.target.value})}/></article>})}</div></section>}
-<section className="mt-6 training-panel"><h2 className="text-xl font-bold">Coach reflection</h2><div className="mt-4 grid gap-4 lg:grid-cols-2"><Text label="Coach Match Summary" value={report.coachSummary} set={v=>update("coachSummary",v)}/><Text label="What Went Well" value={report.wentWell} set={v=>update("wentWell",v)}/><Text label="What Could Be Better" value={report.couldBeBetter} set={v=>update("couldBeBetter",v)}/><Text label="Key Takeaways / Next Steps" value={report.keyTakeaways} set={v=>update("keyTakeaways",v)}/><label className="rounded-xl bg-slate-950 p-4"><span className="training-label">Training Follow-Up</span><span className="flex items-center gap-3"><input type="checkbox" checked={report.needsTrainingFollowUp} onChange={e=>update("needsTrainingFollowUp",e.target.checked)}/> Needs Follow-Up</span><textarea className="games-textarea mt-3" value={report.trainingFollowUpNotes} onChange={e=>update("trainingFollowUpNotes",e.target.value)}/></label><Text label="General Comments" value={report.generalComments} set={v=>update("generalComments",v)}/></div></section>
-{live&&<section className="mt-6 training-panel"><h2 className="text-xl font-bold">Match timeline</h2><div className="mt-3 space-y-2">{live.events.map(e=><p key={e.id} className="rounded-lg bg-slate-950 p-3 text-sm"><b>{Math.floor(e.matchSecond/60)}′</b> {e.type.replaceAll("_"," ")} {e.playerId&&`— ${name(e.playerId)}`}</p>)}</div></section>}
-<div className="sticky bottom-3 mt-6 flex flex-wrap justify-end gap-2 rounded-2xl border border-slate-700 bg-slate-950/95 p-3"><Link className="training-secondary" href={`/games/live/${fixtureId}`}>{live?"Back to Live Match":"Open Live Match"}</Link>{saved&&<span className="self-center text-sm text-emerald-300">Saved</span>}<button className="training-secondary" onClick={()=>save("DRAFT")}>SAVE DRAFT</button><button className="training-primary" onClick={()=>save("COMPLETED")}>{report.status==="COMPLETED"?"SAVE CORRECTIONS":"COMPLETE POST-MATCH"}</button></div></main>}
-function emptyStats(){const b=():TeamMatchStats=>({goals:0,shots:0,shotsOnTarget:0,corners:0,fouls:0,offsides:0});return{US:b(),OPPONENT:b()}}
-function TeamStats({report,setReport}:{report:PostMatchReport;setReport:(r:PostMatchReport)=>void}){const fields:[keyof TeamMatchStats,string][]=[["goals","Goals"],["shots","Shots"],["shotsOnTarget","Shots on Target"],["corners","Corners"],["fouls","Fouls"],["offsides","Offsides"]];return <section className="mt-6 training-panel"><h2 className="text-xl font-bold">US vs OPPONENT</h2><div className="mt-4 space-y-2">{fields.map(([key,label])=><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3" key={key}>{(["US","OPPONENT"] as const).map((side,i)=><input key={side} aria-label={`${side} ${label}`} className={`training-input text-center ${i?"order-3":""}`} type="number" min="0" value={report.teamStats[side][key]} onChange={e=>setReport({...report,teamStats:{...report.teamStats,[side]:{...report.teamStats[side],[key]:Number(e.target.value)}}})}/>)}<b className="order-2 text-center text-xs uppercase text-slate-400">{label}</b></div>)}</div></section>}
-function Text({label,value,set}:{label:string;value:string;set:(v:string)=>void}){return <label><span className="training-label">{label}</span><textarea className="games-textarea" value={value} onChange={e=>set(e.target.value)}/></label>};function Info({label,value}:{label:string;value:string}){return <div><p className="text-xs font-bold uppercase text-slate-500">{label}</p><p className="mt-1 font-semibold">{value}</p></div>};function Missing({text}:{text:string}){return <main className="games-page"><GamesHeader title="Post-Match"/><section className="mt-8 training-panel"><p>{text}</p><Link href="/games/schedule" className="training-primary mt-4 inline-block">Schedule</Link></section></main>}
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { GamesHeader, useGamesData } from "./games-ui";
+import {
+  countPlayerAssists,
+  deriveTeamStats,
+  GamePlan,
+  LIVE_MATCH_STORAGE_KEY,
+  LiveMatch,
+  matchSeconds,
+  newId,
+  playerTimes,
+  POST_MATCH_STORAGE_KEY,
+  PostMatchReport,
+  safeCollection,
+  saveCollection,
+  TeamMatchStats,
+} from "../lib/games-data";
+import { playerFullName } from "../lib/player-data";
+const tactical: [keyof GamePlan, string][] = [
+  ["relatedToMatch", "Related to Match"],
+  ["relatedToOpponent", "Related to Opponent"],
+  ["offensiveOrganization", "Offensive Organization"],
+  ["defensiveOrganization", "Defensive Organization"],
+  ["offensiveTransition", "Offensive Transition"],
+  ["defensiveTransition", "Defensive Transition"],
+  ["setPieces", "Set Pieces"],
+  ["matchFlow", "Related to Match Flow"],
+  ["emotionalAspect", "Emotional Aspect"],
+  ["relatedToReferee", "Related to Referee"],
+  ["teamComparison", "Both Teams / Comparison"],
+  ["lastWords", "Last Words / Pre-Match Message"],
+];
+const at = () => new Date().toISOString();
+export default function PostMatchWorkspace() {
+  const { fixtureId } = useParams<{ fixtureId: string }>(),
+    d = useGamesData(),
+    fixture = d.fixtures.find((f) => f.id === fixtureId),
+    roster = d.rosters.find((r) => r.fixtureId === fixtureId),
+    plan = d.plans.find((p) => p.fixtureId === fixtureId),
+    live = useMemo(
+      () =>
+        typeof window === "undefined"
+          ? undefined
+          : safeCollection<LiveMatch>(
+              localStorage.getItem(LIVE_MATCH_STORAGE_KEY),
+            ).find((m) => m.fixtureId === fixtureId),
+      [fixtureId],
+    );
+  const [report, setReport] = useState<PostMatchReport | null>(null),
+    [saved, setSaved] = useState(false);
+  useEffect(() => {
+    if (!fixture || !roster) return;
+    const old = safeCollection<PostMatchReport>(
+      localStorage.getItem(POST_MATCH_STORAGE_KEY),
+    ).find((r) => r.fixtureId === fixtureId);
+    if (old) {
+      setReport(old);
+      return;
+    }
+    const stamp = at(),
+      stats = live ? deriveTeamStats(live.events) : emptyStats();
+    setReport({
+      schemaVersion: 1,
+      id: newId("post-match"),
+      fixtureId,
+      rosterId: roster.id,
+      gamePlanId: plan?.id || null,
+      liveMatchId: live?.id || null,
+      status: "DRAFT",
+      teamStats: stats,
+      playerCorrections: roster.playerIds.map((playerId) => ({
+        playerId,
+        minutesPlayed: null,
+        positions:
+          live?.players.find((p) => p.playerId === playerId)?.positionHistory ||
+          [],
+        goalsAgainst: null,
+      })),
+      tacticalReviews: tactical
+        .filter(([k]) => typeof plan?.[k] === "string" && plan[k])
+        .map(([key]) => ({ key, assessment: "", notes: "" })),
+      coachSummary: "",
+      wentWell: "",
+      couldBeBetter: "",
+      keyTakeaways: "",
+      needsTrainingFollowUp: false,
+      trainingFollowUpNotes: "",
+      generalComments: "",
+      createdAt: stamp,
+      updatedAt: stamp,
+      completedAt: null,
+    });
+  }, [fixtureId, fixture, roster, plan, live]);
+  if (!fixture) return <Missing text="Fixture not found." />;
+  if (!roster)
+    return (
+      <Missing text="Create a roster before completing the Post-Match Review." />
+    );
+  if (!report) return <main className="games-page">Loading report…</main>;
+  const team = d.teams.find((t) => t.id === fixture.teamId)?.name || "Our team",
+    name = (id: string) => {
+      const p = d.players.find((x) => x.id === id);
+      return p
+        ? playerFullName(p)
+        : roster.playerSnapshots.find((x) => x.playerId === id)?.name ||
+            "Unknown";
+    },
+    goals = (side: "US" | "OPPONENT") => report.teamStats[side].goals,
+    result =
+      goals("US") === goals("OPPONENT")
+        ? "DRAW"
+        : goals("US") > goals("OPPONENT")
+          ? "WIN"
+          : "LOSS";
+  function save(status: PostMatchReport["status"]) {
+    if (!report) return;
+    const next: PostMatchReport = {
+        ...report,
+        status,
+        updatedAt: at(),
+        completedAt:
+          status === "COMPLETED"
+            ? report.completedAt || at()
+            : report.completedAt,
+      },
+      all = safeCollection<PostMatchReport>(
+        localStorage.getItem(POST_MATCH_STORAGE_KEY),
+      );
+    saveCollection(
+      POST_MATCH_STORAGE_KEY,
+      all.some((r) => r.fixtureId === fixtureId)
+        ? all.map((r) => (r.fixtureId === fixtureId ? next : r))
+        : [...all, next],
+    );
+    setReport(next);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  }
+  const update = (key: keyof PostMatchReport, value: unknown) =>
+    setReport((current) => (current ? { ...current, [key]: value } : current));
+  return (
+    <main className="games-page">
+      <GamesHeader
+        eyebrow="Post-match review"
+        title={`${team} ${goals("US")} — ${goals("OPPONENT")} ${fixture.opponentName}`}
+        action={
+          <span
+            className={`rounded-full px-3 py-2 text-xs font-bold ${report.status === "COMPLETED" ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-300"}`}
+          >
+            {report.status}
+          </span>
+        }
+      />
+      <section className="mt-6 training-panel">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Info label="Result" value={result} />
+          <Info label="Competition" value={fixture.competition || "—"} />
+          <Info
+            label="Date / venue"
+            value={`${fixture.date} · ${fixture.venue || "TBD"}`}
+          />
+          <Info
+            label="Actual duration"
+            value={
+              live
+                ? `${Math.ceil(matchSeconds(live) / 60)} min`
+                : "Live Match not used"
+            }
+          />
+          <Info
+            label="Actual formation"
+            value={live?.activeFormation || plan?.formation || "Not recorded"}
+          />
+          <Info label="Planned formation" value={plan?.formation || "Not recorded"} />
+          <Info
+            label="Captain"
+            value={
+              plan?.captainPlayerId
+                ? name(plan.captainPlayerId)
+                : "Not selected"
+            }
+          />
+        </div>
+        {!live && (
+          <p className="mt-4 rounded-xl bg-amber-400/10 p-3 text-sm text-amber-200">
+            Live Match was not used. Enter minutes, positions, score, and
+            statistics manually below.
+          </p>
+        )}
+      </section>
+      <TeamStats report={report} setReport={setReport} />
+      <section className="mt-6 training-panel">
+        <h2 className="text-xl font-bold">Player match record</h2>
+        <p className="mt-1 text-sm text-slate-400">
+          Only players on this match roster are shown. Live facts populate
+          automatically; corrections remain editable.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[850px] text-sm">
+            <thead className="text-left text-xs uppercase text-slate-400">
+              <tr>
+                <th>Player</th>
+                <th>Started</th>
+                <th>Minutes</th>
+                <th>Positions</th>
+                <th>G</th>
+                <th>A</th>
+                <th>YC</th>
+                <th>RC</th>
+                <th>GA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {roster.playerIds.map((id) => {
+                const lp = live?.players.find((p) => p.playerId === id),
+                  correction = report.playerCorrections.find(
+                    (p) => p.playerId === id,
+                  )!,
+                  events = live?.events || [],
+                  count = (type: string, field = "playerId") =>
+                    events.filter(
+                      (e) => e.type === type && e[field as "playerId"] === id,
+                    ).length,
+                  minutes =
+                    correction.minutesPlayed ??
+                    (lp ? Math.round(playerTimes(lp, live!).played / 60) : 0);
+                function correct(patch: Partial<typeof correction>) {
+                  update(
+                    "playerCorrections",
+                    report!.playerCorrections.map((p) =>
+                      p.playerId === id ? { ...p, ...patch } : p,
+                    ),
+                  );
+                }
+                return (
+                  <tr className="border-t border-slate-800" key={id}>
+                    <td className="py-3 font-bold">{name(id)}</td>
+                    <td>
+                      {lp?.started ||
+                      plan?.lineup.some((s) => s.playerId === id)
+                        ? "Yes"
+                        : "No"}
+                    </td>
+                    <td>
+                      <input
+                        aria-label={`${name(id)} minutes`}
+                        className="w-20 rounded-lg bg-slate-950 p-2"
+                        type="number"
+                        min="0"
+                        value={minutes}
+                        onChange={(e) =>
+                          correct({ minutesPlayed: Number(e.target.value) })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        aria-label={`${name(id)} positions`}
+                        className="w-40 rounded-lg bg-slate-950 p-2"
+                        value={correction.positions.join(", ")}
+                        onChange={(e) =>
+                          correct({
+                            positions: e.target.value
+                              .split(",")
+                              .map((x) => x.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                      />
+                    </td>
+                    <td>{count("GOAL")}</td>
+                    <td>{countPlayerAssists(events, id)}</td>
+                    <td>{count("YELLOW_CARD")}</td>
+                    <td>{count("RED_CARD")}</td>
+                    <td>
+                      <input
+                        aria-label={`${name(id)} goals against`}
+                        className="w-16 rounded-lg bg-slate-950 p-2"
+                        type="number"
+                        min="0"
+                        value={correction.goalsAgainst ?? ""}
+                        onChange={(e) =>
+                          correct({
+                            goalsAgainst:
+                              e.target.value === ""
+                                ? null
+                                : Number(e.target.value),
+                          })
+                        }
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      {plan && (
+        <section className="mt-6">
+          <h2 className="text-2xl font-bold">Tactical review</h2>
+          <p className="mt-1 text-slate-400">
+            The original Game Plan remains unchanged.
+          </p>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {tactical
+              .filter(([key]) => plan[key])
+              .map(([key, label]) => {
+                const review = report.tacticalReviews.find(
+                  (r) => r.key === key,
+                ) || { key, assessment: "" as const, notes: "" };
+                const change = (patch: Partial<typeof review>) =>
+                  update("tacticalReviews", [
+                    ...report.tacticalReviews.filter((r) => r.key !== key),
+                    { ...review, ...patch },
+                  ]);
+                return (
+                  <article className="training-panel" key={key}>
+                    <p className="text-xs font-bold uppercase text-emerald-400">
+                      {label}
+                    </p>
+                    <div className="my-3 rounded-xl bg-slate-950 p-3 text-sm whitespace-pre-wrap">
+                      <span className="text-xs text-slate-500">
+                        PRE-MATCH PLAN
+                      </span>
+                      <p>{String(plan[key])}</p>
+                    </div>
+                    <select
+                      className="training-input"
+                      value={review.assessment}
+                      onChange={(e) =>
+                        change({
+                          assessment: e.target
+                            .value as typeof review.assessment,
+                        })
+                      }
+                    >
+                      <option value="">Assessment…</option>
+                      <option value="ACHIEVED">Achieved</option>
+                      <option value="PARTIALLY_ACHIEVED">
+                        Partially achieved
+                      </option>
+                      <option value="NOT_ACHIEVED">Not achieved</option>
+                    </select>
+                    <textarea
+                      className="games-textarea mt-3"
+                      placeholder="Post-match notes — what actually happened?"
+                      value={review.notes}
+                      onChange={(e) => change({ notes: e.target.value })}
+                    />
+                  </article>
+                );
+              })}
+          </div>
+        </section>
+      )}
+      <section className="mt-6 training-panel">
+        <h2 className="text-xl font-bold">Coach reflection</h2>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <Text
+            label="Coach Match Summary"
+            value={report.coachSummary}
+            set={(v) => update("coachSummary", v)}
+          />
+          <Text
+            label="What Went Well"
+            value={report.wentWell}
+            set={(v) => update("wentWell", v)}
+          />
+          <Text
+            label="What Could Be Better"
+            value={report.couldBeBetter}
+            set={(v) => update("couldBeBetter", v)}
+          />
+          <Text
+            label="Key Takeaways / Next Steps"
+            value={report.keyTakeaways}
+            set={(v) => update("keyTakeaways", v)}
+          />
+          <label className="rounded-xl bg-slate-950 p-4">
+            <span className="training-label">Training Follow-Up</span>
+            <span className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={report.needsTrainingFollowUp}
+                onChange={(e) =>
+                  update("needsTrainingFollowUp", e.target.checked)
+                }
+              />{" "}
+              Needs Follow-Up
+            </span>
+            <textarea
+              className="games-textarea mt-3"
+              value={report.trainingFollowUpNotes}
+              onChange={(e) => update("trainingFollowUpNotes", e.target.value)}
+            />
+          </label>
+          <Text
+            label="General Comments"
+            value={report.generalComments}
+            set={(v) => update("generalComments", v)}
+          />
+        </div>
+      </section>
+      {live && (
+        <section className="mt-6 training-panel">
+          <h2 className="text-xl font-bold">Match timeline</h2>
+          <div className="mt-3 space-y-2">
+            {live.events.map((e) => (
+              <p key={e.id} className="rounded-lg bg-slate-950 p-3 text-sm">
+                <b>{Math.floor(e.matchSecond / 60)}′</b>{" "}
+                {e.type.replaceAll("_", " ")}{" "}
+                {e.playerId && `— ${name(e.playerId)}`}
+              </p>
+            ))}
+          </div>
+        </section>
+      )}
+      <div className="sticky bottom-3 mt-6 flex flex-wrap justify-end gap-2 rounded-2xl border border-slate-700 bg-slate-950/95 p-3">
+        <Link className="training-secondary" href={`/games/live/${fixtureId}`}>
+          {live ? "Back to Live Match" : "Open Live Match"}
+        </Link>
+        {saved && (
+          <span className="self-center text-sm text-emerald-300">Saved</span>
+        )}
+        <button className="training-secondary" onClick={() => save("DRAFT")}>
+          SAVE DRAFT
+        </button>
+        <button className="training-primary" onClick={() => save("COMPLETED")}>
+          {report.status === "COMPLETED"
+            ? "SAVE CORRECTIONS"
+            : "COMPLETE POST-MATCH"}
+        </button>
+      </div>
+    </main>
+  );
+}
+function emptyStats() {
+  const b = (): TeamMatchStats => ({
+    goals: 0,
+    shots: 0,
+    shotsOnTarget: 0,
+    corners: 0,
+    fouls: 0,
+    offsides: 0,
+  });
+  return { US: b(), OPPONENT: b() };
+}
+function TeamStats({
+  report,
+  setReport,
+}: {
+  report: PostMatchReport;
+  setReport: (r: PostMatchReport) => void;
+}) {
+  const fields: [keyof TeamMatchStats, string][] = [
+    ["goals", "Goals"],
+    ["shots", "Shots"],
+    ["shotsOnTarget", "Shots on Target"],
+    ["corners", "Corners"],
+    ["fouls", "Fouls"],
+    ["offsides", "Offsides"],
+  ];
+  return (
+    <section className="mt-6 training-panel">
+      <h2 className="text-xl font-bold">US vs OPPONENT</h2>
+      <div className="mt-4 space-y-2">
+        {fields.map(([key, label]) => (
+          <div
+            className="grid grid-cols-[1fr_auto_1fr] items-center gap-3"
+            key={key}
+          >
+            {(["US", "OPPONENT"] as const).map((side, i) => (
+              <input
+                key={side}
+                aria-label={`${side} ${label}`}
+                className={`training-input text-center ${i ? "order-3" : ""}`}
+                type="number"
+                min="0"
+                value={report.teamStats[side][key]}
+                onChange={(e) =>
+                  setReport({
+                    ...report,
+                    teamStats: {
+                      ...report.teamStats,
+                      [side]: {
+                        ...report.teamStats[side],
+                        [key]: Number(e.target.value),
+                      },
+                    },
+                  })
+                }
+              />
+            ))}
+            <b className="order-2 text-center text-xs uppercase text-slate-400">
+              {label}
+            </b>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+function Text({
+  label,
+  value,
+  set,
+}: {
+  label: string;
+  value: string;
+  set: (v: string) => void;
+}) {
+  return (
+    <label>
+      <span className="training-label">{label}</span>
+      <textarea
+        className="games-textarea"
+        value={value}
+        onChange={(e) => set(e.target.value)}
+      />
+    </label>
+  );
+}
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-bold uppercase text-slate-500">{label}</p>
+      <p className="mt-1 font-semibold">{value}</p>
+    </div>
+  );
+}
+function Missing({ text }: { text: string }) {
+  return (
+    <main className="games-page">
+      <GamesHeader title="Post-Match" />
+      <section className="mt-8 training-panel">
+        <p>{text}</p>
+        <Link
+          href="/games/schedule"
+          className="training-primary mt-4 inline-block"
+        >
+          Schedule
+        </Link>
+      </section>
+    </main>
+  );
+}

@@ -16,10 +16,10 @@ export type GamePlan = { id:string; fixtureId:string; rosterId:string; formation
 
 export type MatchPhase="NOT_STARTED"|"FIRST_HALF"|"HALFTIME"|"SECOND_HALF"|"FULL_TIME";
 export type MatchSide="US"|"OPPONENT";
-export type MatchEventType="MATCH_STARTED"|"GOAL"|"SUBSTITUTION"|"YELLOW_CARD"|"RED_CARD"|"SHOT"|"SHOT_ON_TARGET"|"CORNER"|"FOUL"|"OFFSIDE"|"END_FIRST_HALF"|"START_SECOND_HALF"|"FULL_TIME";
+export type MatchEventType="MATCH_STARTED"|"GOAL"|"ASSIST"|"SUBSTITUTION"|"POSITION_CHANGE"|"YELLOW_CARD"|"RED_CARD"|"SHOT"|"SHOT_ON_TARGET"|"CORNER"|"FOUL"|"OFFSIDE"|"END_FIRST_HALF"|"START_SECOND_HALF"|"FULL_TIME";
 export type MatchEvent={id:string;liveMatchId:string;type:MatchEventType;side?:MatchSide;playerId?:string;assistPlayerId?:string;playerOutId?:string;playerInId?:string;phase:MatchPhase;matchSecond:number;occurredAt:string;order:number;metadata?:Record<string,string|number|boolean|null>};
 export type PlayerMatchState={playerId:string;started:boolean;onField:boolean;slotId:string|null;positionHistory:string[];playedSeconds:number;benchSeconds:number;stintStartedAt:string|null;benchStintStartedAt:string|null};
-export type LiveMatch={schemaVersion:1;id:string;fixtureId:string;rosterId:string;gamePlanId:string|null;phase:MatchPhase;paused:boolean;elapsedSeconds:number;clockStartedAt:string|null;players:PlayerMatchState[];events:MatchEvent[];createdAt:string;updatedAt:string};
+export type LiveMatch={schemaVersion:1;id:string;fixtureId:string;rosterId:string;gamePlanId:string|null;phase:MatchPhase;paused:boolean;elapsedSeconds:number;clockStartedAt:string|null;players:PlayerMatchState[];events:MatchEvent[];activeFormation?:string;liveSlots?:LineupSlot[];createdAt:string;updatedAt:string};
 export type TeamMatchStats={goals:number;shots:number;shotsOnTarget:number;corners:number;fouls:number;offsides:number};
 export type PlayerMatchCorrection={playerId:string;minutesPlayed:number|null;positions:string[];goalsAgainst:number|null};
 export type TacticalAssessment=""|"ACHIEVED"|"PARTIALLY_ACHIEVED"|"NOT_ACHIEVED";
@@ -36,6 +36,7 @@ export function secondsSince(iso:string|null,now=Date.now()){return iso?Math.max
 export function matchSeconds(match:LiveMatch,now=Date.now()){return match.elapsedSeconds+(activeMatch(match.phase,match.paused)?secondsSince(match.clockStartedAt,now):0);}
 export function playerTimes(player:PlayerMatchState,match:LiveMatch,now=Date.now()){const running=activeMatch(match.phase,match.paused);return{played:player.playedSeconds+(running&&player.onField?secondsSince(player.stintStartedAt,now):0),bench:player.benchSeconds+(running&&!player.onField?secondsSince(player.benchStintStartedAt,now):0),currentBench:running&&!player.onField?secondsSince(player.benchStintStartedAt,now):0}};
 export function deriveTeamStats(events:MatchEvent[]):{US:TeamMatchStats;OPPONENT:TeamMatchStats}{const blank=():TeamMatchStats=>({goals:0,shots:0,shotsOnTarget:0,corners:0,fouls:0,offsides:0}),result={US:blank(),OPPONENT:blank()};for(const e of events){if(!e.side)continue;const s=result[e.side];if(e.type==="GOAL"){s.goals++;s.shots++;s.shotsOnTarget++;}else if(e.type==="SHOT")s.shots++;else if(e.type==="SHOT_ON_TARGET"){s.shots++;s.shotsOnTarget++;}else if(e.type==="CORNER")s.corners++;else if(e.type==="FOUL")s.fouls++;else if(e.type==="OFFSIDE")s.offsides++;}return result;}
+export function countPlayerAssists(events:MatchEvent[],playerId:string){const attached=events.filter(e=>e.type==="GOAL"&&e.assistPlayerId===playerId),unmatched=[...attached];let standaloneCount=0;for(const assist of events.filter(e=>e.type==="ASSIST"&&e.playerId===playerId)){const duplicate=unmatched.findIndex(goal=>goal.phase===assist.phase&&Math.abs(goal.matchSecond-assist.matchSecond)<=10);if(duplicate>=0)unmatched.splice(duplicate,1);else standaloneCount++;}return attached.length+standaloneCount;}
 export function fixtureStart(f:Fixture){return `${f.date}T${f.kickoffTime||"00:00"}`;}
 export function buildSlots(formation:string):LineupSlot[]{
   const lines=formation.split("-").map(Number).filter(n=>n>0); let index=0;
