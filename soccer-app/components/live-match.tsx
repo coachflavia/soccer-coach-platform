@@ -21,6 +21,7 @@ import {
   secondsSince,
 } from "../lib/games-data";
 import { playerFullName } from "../lib/player-data";
+import { PrepareOfflineMatch } from "./prepare-offline-match";
 
 const stamp = () => new Date().toISOString();
 const format = (seconds: number) =>
@@ -52,11 +53,25 @@ export default function LiveMatchWorkspace() {
       (p) =>
         p.fixtureId === fixtureId && (p.rosterId === roster?.id || !roster),
     );
-  const [match, setMatch] = useState<LiveMatch | null>(null),
+  const [match, setMatchState] = useState<LiveMatch | null>(null),
     [now, setNow] = useState(0),
     [selected, setSelected] = useState<string | null>(null),
     [assist, setAssist] = useState(""),
     [subOut, setSubOut] = useState<string | null>(null);
+  function setMatch(next: LiveMatch | null) {
+    if (next) {
+      const all = safeCollection<LiveMatch>(
+        localStorage.getItem(LIVE_MATCH_STORAGE_KEY),
+      );
+      saveCollection(
+        LIVE_MATCH_STORAGE_KEY,
+        all.some((saved) => saved.fixtureId === next.fixtureId)
+          ? all.map((saved) => (saved.fixtureId === next.fixtureId ? next : saved))
+          : [...all, next],
+      );
+    }
+    setMatchState(next);
+  }
   useEffect(() => {
     if (!fixture || !roster) return;
     const stored = safeCollection<LiveMatch>(
@@ -110,18 +125,6 @@ export default function LiveMatchWorkspace() {
       updatedAt: at,
     });
   }, [fixtureId, fixture, roster, plan]);
-  useEffect(() => {
-    if (!match) return;
-    const all = safeCollection<LiveMatch>(
-      localStorage.getItem(LIVE_MATCH_STORAGE_KEY),
-    );
-    saveCollection(
-      LIVE_MATCH_STORAGE_KEY,
-      all.some((m) => m.fixtureId === match.fixtureId)
-        ? all.map((m) => (m.fixtureId === match.fixtureId ? match : m))
-        : [...all, match],
-    );
-  }, [match]);
   useEffect(() => {
     setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -445,6 +448,21 @@ export default function LiveMatchWorkspace() {
         eyebrow="Live match"
         title={`${team} vs ${fixture.opponentName}`}
       />
+      <div className="mt-4">
+        <PrepareOfflineMatch
+          fixtureId={fixture.id}
+          rosterId={roster.id}
+          gamePlanId={plan.id}
+          matchData={{
+            fixture,
+            team: d.teams.find((entry) => entry.id === fixture.teamId),
+            roster,
+            rosterPlayerSnapshots: roster.playerSnapshots,
+            players: d.players.filter((player) => roster.playerIds.includes(player.id)),
+            plan,
+          }}
+        />
+      </div>
       <section className="mt-6 rounded-2xl border border-emerald-500/30 bg-slate-900 p-4 text-center">
         <p className="text-xs font-black tracking-[.24em] text-emerald-400">
           {match.paused ? "PAUSED" : match.phase.replaceAll("_", " ")}
